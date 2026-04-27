@@ -188,7 +188,7 @@ void UAtmosSubSys::Tick(float DeltaTime)
 
     const float Time = World->TimeSeconds;
 
-    // Calculate sinewave for subtle ambient shifting underwater murk.
+    // Calculate sinewave for subtle shifting
     const float ExactWaveOffset = FMath::Sin(Time * FogPulseSpeed) * FogPulseAmplitude;
     const float NewDensity = TargetBaseDensity + ExactWaveOffset;
 
