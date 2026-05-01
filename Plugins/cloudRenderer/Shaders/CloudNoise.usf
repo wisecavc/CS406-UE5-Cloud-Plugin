@@ -1,0 +1,68 @@
+// CloudNoise.usf
+
+#pragma once
+ 
+/**
+ * 3D Hash Function
+ */
+float CloudRenderer_Hash(float3 p)
+{
+    // Fold space into fractional domain
+    p = frac(p * 0.3183099 + 0.1);
+    // Amplify and scramble coordinates
+    p *= 17.0;
+    // Combine components into a single scalar
+    return frac(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+ 
+/**
+ * Trilinear Interpolation Value Noise
+ * -----------------------------------------
+ * Produces smooth noise by interpolating random values
+ * stored at integer grid points in 3D space.
+ */
+float CloudRenderer_Noise3D(float3 p)
+{
+    // Identifies which voxel cell we are in
+    float3 i = floor(p);
+    // Identifies position inside voxel cell
+    float3 f = frac(p); // (0–1 range)
+ 
+    /**
+     * Voxel cell layout:
+     * z = 0:
+     *   n000 ---- n100
+     *    |         |
+     *   n010 ---- n110
+     *
+     * z = 1:
+     *   n001 ---- n101
+     *    |         |
+     *   n011 ---- n111
+     */
+    float n000 = CloudRenderer_Hash(i + float3(0, 0, 0));
+    float n100 = CloudRenderer_Hash(i + float3(1, 0, 0));
+    float n010 = CloudRenderer_Hash(i + float3(0, 1, 0));
+    float n110 = CloudRenderer_Hash(i + float3(1, 1, 0));
+    float n001 = CloudRenderer_Hash(i + float3(0, 0, 1));
+    float n101 = CloudRenderer_Hash(i + float3(1, 0, 1));
+    float n011 = CloudRenderer_Hash(i + float3(0, 1, 1));
+    float n111 = CloudRenderer_Hash(i + float3(1, 1, 1));
+ 
+    /**
+     * Smooth interpolation curve
+     * -----------------------------------------
+     * Removes linear artifacts and creates smooth transitions
+     * between lattice points, preventing visible grid structure in the noise.
+     */
+    float3 u = f * f * (3.0 - 2.0 * f);
+ 
+    // Trilinear interpolation
+    return lerp(
+        lerp(lerp(n000, n100, u.x),     // interpolate along X (bottom front/back)
+        lerp(n010, n110, u.x), u.y),    // interpolate along X (top front/back)
+        lerp(lerp(n001, n101, u.x),     // interpolate along X (bottom back layer)
+        lerp(n011, n111, u.x), u.y),    // interpolate along X (top back layer)
+        u.z                             // interpolate between front and back layers
+    );
+}
